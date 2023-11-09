@@ -6,6 +6,7 @@ int opcionElegida;
 File miArchivo;
 int totalL = 0;
 char dato;
+String Data = "";  
 
 void setup() {
   // put your setup code here, to run once:
@@ -23,7 +24,9 @@ void setup() {
   Serial.println("Opción 3: Husky");
   Serial.println("Opción 4: Crear mi propia imagen");
   Serial.println("Opción 5: Visualizar mi propia imagen");
-
+  
+  miArchivo = SD.open("/");  // Abre el directorio raíz de la tarjeta SD
+  printDirectory(miArchivo, 0);  // Llama a la función para imprimir la estructura de directorios y archivos
 
 }
 
@@ -96,8 +99,8 @@ void loop() {
 
 
   if(opcionElegida == 4){
-    Serial.println("Cuenta con un máximo de 15 lineas para elaborar una imagen");
-    while (totalL < 15) {
+    Serial.println("Cuenta con un máximo de 10 lineas para elaborar una imagen");
+    while (totalL < 10) {
     while (!Serial.available()) {
       // Espera a que haya datos disponibles en el monitor serial
     }
@@ -105,22 +108,47 @@ void loop() {
     while (Serial.available() > 0) {
       dato = Serial.read();
       Serial.print(dato);
+      Data += dato;
       // Abre el archivo en modo "append"
-      miArchivo = SD.open("/miArchivo.txt");
+      miArchivo = SD.open("/miArchivo.txt", FILE_WRITE);
       if (miArchivo) {
-        miArchivo.print(dato);
+        miArchivo.print(Data);
         miArchivo.close();
       } else {
         Serial.print("error al escribir en la tarjeta");
       }
     }
   // Incrementar el contador de líneas
-    Serial.print("Linea: ");
-    Serial.println(totalL);
     totalL++;
-    if(totalL == 16) {
-    Serial.print("Dibujo finalizado");
+    delay(1000);
+    if(totalL == 10) {
+    Serial.println("Dibujo finalizado");
+    Serial.println("Elija otra opción");
     }  
   }
   }
   }
+
+void printDirectory(File dir, int numTabs) {
+  // Lista y muestra la estructura de directorios y archivos en la tarjeta SD
+  while (true) {
+    File entry = dir.openNextFile();  // Abre el siguiente archivo o directorio en el directorio actual
+    if (!entry) {
+      // No hay más archivos
+      break;
+    }
+    for (uint8_t i = 0; i < numTabs; i++) {
+      Serial.print('\t');  // Agrega sangría para mostrar la estructura de directorios
+    }
+    Serial.print(entry.name());  // Muestra el nombre del archivo o directorio
+    if (entry.isDirectory()) {
+      Serial.println("/");  // Si es un directorio, muestra "/"
+      printDirectory(entry, numTabs + 1);  // Llama a la función para mostrar el contenido del directorio
+    } else {
+      // Los archivos tienen tamaños, los directorios no
+      Serial.print("\t\t");
+      Serial.println(entry.size(), DEC);  // Muestra el tamaño del archivo en bytes
+    }
+    entry.close();  // Cierra el archivo o directorio
+  }
+}
